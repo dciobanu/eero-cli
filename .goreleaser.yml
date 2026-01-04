@@ -36,6 +36,7 @@ brews:
   - repository:
       owner: dciobanu
       name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
     directory: Formula
     homepage: "https://github.com/dciobanu/eero-cli"
     description: "Command-line utility for controlling Eero mesh WiFi networks"
