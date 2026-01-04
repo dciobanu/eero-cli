@@ -170,9 +170,12 @@ Commands:
   devices unblock <id>        Unblock a device
   devices rename <id> <name>  Set a device's nickname
 
-  profiles                  List all profiles
-  profiles pause <id>       Pause a profile
-  profiles unpause <id>     Unpause a profile
+  profiles                    List all profiles
+  profiles inspect <id>       Show full profile state as JSON
+  profiles pause <id>         Pause a profile
+  profiles unpause <id>       Unpause a profile
+  profiles add <profile> <device>     Add device to profile
+  profiles remove <profile> <device>  Remove device from profile
 
   guest                     Show guest network status
   guest enable              Enable guest network

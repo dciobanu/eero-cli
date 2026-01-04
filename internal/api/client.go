@@ -398,6 +398,62 @@ func (c *Client) UpdateProfile(networkID, profileID string, updates map[string]i
 	return err
 }
 
+// ProfileDetails contains detailed profile info including devices
+type ProfileDetails struct {
+	URL     string `json:"url"`
+	Name    string `json:"name"`
+	Paused  bool   `json:"paused"`
+	Devices []struct {
+		URL string `json:"url"`
+	} `json:"devices"`
+}
+
+// GetProfileDetails returns detailed profile information including devices
+func (c *Client) GetProfileDetails(networkID, profileID string) (*ProfileDetails, error) {
+	path := fmt.Sprintf("/2.2/networks/%s/profiles/%s", networkID, profileID)
+	data, err := c.request("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp APIResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	var profile ProfileDetails
+	if err := json.Unmarshal(resp.Data, &profile); err != nil {
+		return nil, fmt.Errorf("parsing profile data: %w", err)
+	}
+
+	return &profile, nil
+}
+
+// GetProfileRaw returns the raw JSON for a single profile
+func (c *Client) GetProfileRaw(networkID, profileID string) (json.RawMessage, error) {
+	path := fmt.Sprintf("/2.2/networks/%s/profiles/%s", networkID, profileID)
+	data, err := c.request("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp APIResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	return resp.Data, nil
+}
+
+// SetProfileDevices updates the devices assigned to a profile
+func (c *Client) SetProfileDevices(networkID, profileID string, deviceURLs []string) error {
+	devices := make([]map[string]string, len(deviceURLs))
+	for i, url := range deviceURLs {
+		devices[i] = map[string]string{"url": url}
+	}
+	return c.UpdateProfile(networkID, profileID, map[string]interface{}{"devices": devices})
+}
+
 // PauseProfile pauses or unpauses a profile
 func (c *Client) PauseProfile(networkID, profileID string, pause bool) error {
 	return c.UpdateProfile(networkID, profileID, map[string]interface{}{"paused": pause})
