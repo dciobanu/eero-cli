@@ -195,6 +195,7 @@ type Device struct {
 	Wireless  bool   `json:"wireless"`
 	Paused    bool   `json:"paused"`
 	Blocked   bool   `json:"blocked"`
+	IsGuest   bool   `json:"is_guest"`
 	Profile   *struct {
 		URL  string `json:"url"`
 		Name string `json:"name"`

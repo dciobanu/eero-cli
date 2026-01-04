@@ -9,11 +9,14 @@ import (
 
 // DeviceFilters holds filter options for device listing
 type DeviceFilters struct {
-	Profile  string
-	Wired    bool
-	Wireless bool
-	Online   bool
-	Offline  bool
+	Profile   string
+	NoProfile bool
+	Wired     bool
+	Wireless  bool
+	Online    bool
+	Offline   bool
+	Guest     bool
+	NoGuest   bool
 }
 
 // Devices handles the devices command
@@ -35,6 +38,12 @@ func (a *App) Devices(args []string) error {
 			filters.Online = true
 		} else if args[i] == "--offline" {
 			filters.Offline = true
+		} else if args[i] == "--guest" {
+			filters.Guest = true
+		} else if args[i] == "--noguest" {
+			filters.NoGuest = true
+		} else if args[i] == "--noprofile" {
+			filters.NoProfile = true
 		} else {
 			filteredArgs = append(filteredArgs, args[i])
 		}
@@ -117,7 +126,9 @@ func (a *App) ListDevices(filters DeviceFilters) error {
 		profileDisplay := ""
 		profileName := ""
 		profileID := ""
-		if d.Profile != nil {
+		if d.IsGuest {
+			profileDisplay = "Guest"
+		} else if d.Profile != nil {
 			profileName = d.Profile.Name
 			profileID = api.ExtractProfileID(d.Profile.URL)
 			profileDisplay = fmt.Sprintf("%s (%s)", profileName, profileID)
@@ -145,6 +156,21 @@ func (a *App) ListDevices(filters DeviceFilters) error {
 			continue
 		}
 		if filters.Offline && d.Connected {
+			continue
+		}
+
+		// Apply guest filter
+		if filters.Guest && !d.IsGuest {
+			continue
+		}
+
+		// Apply noguest filter
+		if filters.NoGuest && d.IsGuest {
+			continue
+		}
+
+		// Apply noprofile filter (no profile assigned, includes guests)
+		if filters.NoProfile && d.Profile != nil {
 			continue
 		}
 
@@ -201,6 +227,15 @@ func (a *App) ListDevices(filters DeviceFilters) error {
 	}
 	if filters.Offline {
 		filterParts = append(filterParts, "offline")
+	}
+	if filters.Guest {
+		filterParts = append(filterParts, "guest")
+	}
+	if filters.NoGuest {
+		filterParts = append(filterParts, "no guest")
+	}
+	if filters.NoProfile {
+		filterParts = append(filterParts, "no profile")
 	}
 
 	if len(filterParts) > 0 {

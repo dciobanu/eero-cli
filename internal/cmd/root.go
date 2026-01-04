@@ -154,10 +154,13 @@ Commands:
 
   devices [options]           List all devices
     --profile <name|id>       Filter by profile name or ID
+    --noprofile               Show only devices without a profile
     --wired                   Show only wired devices
     --wireless                Show only wireless devices
     --online                  Show only online devices
     --offline                 Show only offline devices
+    --guest                   Show only guest network devices
+    --noguest                 Exclude guest network devices
   devices pause <id>          Pause a device's internet access
   devices unpause <id>        Unpause a device
   devices block <id>          Block a device from the network
