@@ -152,7 +152,12 @@ Commands:
   logout                    Clear saved authentication
   status                    Show current authentication status
 
-  devices [--profile <name>]  List all devices (optionally filter by profile)
+  devices [options]           List all devices
+    --profile <name|id>       Filter by profile name or ID
+    --wired                   Show only wired devices
+    --wireless                Show only wireless devices
+    --online                  Show only online devices
+    --offline                 Show only offline devices
   devices pause <id>          Pause a device's internet access
   devices unpause <id>        Unpause a device
   devices block <id>          Block a device from the network

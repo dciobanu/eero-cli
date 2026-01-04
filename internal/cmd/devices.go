@@ -7,24 +7,41 @@ import (
 	"github.com/dorin/eero-cli/internal/api"
 )
 
+// DeviceFilters holds filter options for device listing
+type DeviceFilters struct {
+	Profile  string
+	Wired    bool
+	Wireless bool
+	Online   bool
+	Offline  bool
+}
+
 // Devices handles the devices command
 func (a *App) Devices(args []string) error {
-	// Parse --profile flag
-	var profileFilter string
+	// Parse flags
+	var filters DeviceFilters
 	var filteredArgs []string
 	for i := 0; i < len(args); i++ {
 		if args[i] == "--profile" && i+1 < len(args) {
-			profileFilter = args[i+1]
+			filters.Profile = args[i+1]
 			i++ // skip the value
 		} else if strings.HasPrefix(args[i], "--profile=") {
-			profileFilter = strings.TrimPrefix(args[i], "--profile=")
+			filters.Profile = strings.TrimPrefix(args[i], "--profile=")
+		} else if args[i] == "--wired" {
+			filters.Wired = true
+		} else if args[i] == "--wireless" {
+			filters.Wireless = true
+		} else if args[i] == "--online" {
+			filters.Online = true
+		} else if args[i] == "--offline" {
+			filters.Offline = true
 		} else {
 			filteredArgs = append(filteredArgs, args[i])
 		}
 	}
 
 	if len(filteredArgs) == 0 {
-		return a.ListDevices(profileFilter)
+		return a.ListDevices(filters)
 	}
 
 	switch filteredArgs[0] {
@@ -58,8 +75,8 @@ func (a *App) Devices(args []string) error {
 	}
 }
 
-// ListDevices lists all devices on the network, optionally filtered by profile
-func (a *App) ListDevices(profileFilter string) error {
+// ListDevices lists all devices on the network, optionally filtered
+func (a *App) ListDevices(filters DeviceFilters) error {
 	networkID, err := a.EnsureNetwork()
 	if err != nil {
 		return err
@@ -73,13 +90,13 @@ func (a *App) ListDevices(profileFilter string) error {
 	// Build profile ID to name map for resolving filter
 	var resolvedProfileName string
 	var resolvedProfileID string
-	if profileFilter != "" {
+	if filters.Profile != "" {
 		profiles, err := a.Client.GetProfiles(networkID)
 		if err == nil {
 			for _, p := range profiles {
 				profileID := api.ExtractProfileID(p.URL)
 				// Check if filter matches ID or name
-				if strings.EqualFold(profileID, profileFilter) || strings.EqualFold(p.Name, profileFilter) {
+				if strings.EqualFold(profileID, filters.Profile) || strings.EqualFold(p.Name, filters.Profile) {
 					resolvedProfileName = p.Name
 					resolvedProfileID = profileID
 					break
@@ -88,7 +105,7 @@ func (a *App) ListDevices(profileFilter string) error {
 		}
 		if resolvedProfileName == "" {
 			// No exact match found, use filter as-is for name matching
-			resolvedProfileName = profileFilter
+			resolvedProfileName = filters.Profile
 		}
 	}
 
@@ -107,13 +124,30 @@ func (a *App) ListDevices(profileFilter string) error {
 		}
 
 		// Apply profile filter if specified (match by name or ID)
-		if profileFilter != "" {
+		if filters.Profile != "" {
 			match := strings.EqualFold(profileName, resolvedProfileName) ||
-				strings.EqualFold(profileID, profileFilter)
+				strings.EqualFold(profileID, filters.Profile)
 			if !match {
 				continue
 			}
 		}
+
+		// Apply wired/wireless filter
+		if filters.Wired && d.Wireless {
+			continue
+		}
+		if filters.Wireless && !d.Wireless {
+			continue
+		}
+
+		// Apply online/offline filter
+		if filters.Online && !d.Connected {
+			continue
+		}
+		if filters.Offline && d.Connected {
+			continue
+		}
+
 		filteredCount++
 
 		status := "offline"
@@ -146,12 +180,31 @@ func (a *App) ListDevices(profileFilter string) error {
 	}
 
 	PrintTable(headers, rows)
-	if profileFilter != "" {
+
+	// Build filter description
+	var filterParts []string
+	if filters.Profile != "" {
 		if resolvedProfileID != "" {
-			fmt.Printf("\nTotal: %d devices (filtered by profile: %s [%s])\n", filteredCount, resolvedProfileName, resolvedProfileID)
+			filterParts = append(filterParts, fmt.Sprintf("profile: %s [%s]", resolvedProfileName, resolvedProfileID))
 		} else {
-			fmt.Printf("\nTotal: %d devices (filtered by profile: %s)\n", filteredCount, profileFilter)
+			filterParts = append(filterParts, fmt.Sprintf("profile: %s", filters.Profile))
 		}
+	}
+	if filters.Wired {
+		filterParts = append(filterParts, "wired")
+	}
+	if filters.Wireless {
+		filterParts = append(filterParts, "wireless")
+	}
+	if filters.Online {
+		filterParts = append(filterParts, "online")
+	}
+	if filters.Offline {
+		filterParts = append(filterParts, "offline")
+	}
+
+	if len(filterParts) > 0 {
+		fmt.Printf("\nTotal: %d devices (filtered by %s)\n", filteredCount, strings.Join(filterParts, ", "))
 	} else {
 		fmt.Printf("\nTotal: %d devices\n", len(devices))
 	}
