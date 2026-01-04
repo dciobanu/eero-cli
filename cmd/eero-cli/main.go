@@ -7,6 +7,9 @@ import (
 	"github.com/dorin/eero-cli/internal/cmd"
 )
 
+// Version is set by goreleaser via ldflags
+var Version = "dev"
+
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
@@ -33,6 +36,10 @@ func run() error {
 	switch command {
 	case "help", "-h", "--help":
 		cmd.Usage()
+		return nil
+
+	case "version", "-v", "--version":
+		fmt.Printf("eero-cli %s\n", Version)
 		return nil
 
 	case "login":
