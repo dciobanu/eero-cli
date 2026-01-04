@@ -29,6 +29,7 @@ eero-cli devices                        # List all devices
 eero-cli devices --online --wireless    # Filter by status/type
 eero-cli devices --profile Kids         # Filter by profile
 eero-cli devices --paused               # Show paused devices
+eero-cli devices --private              # Show private (hidden MAC) devices
 eero-cli devices monitor                # Monitor for state changes
 eero-cli devices monitor --interval 5   # Custom poll interval
 eero-cli devices inspect <id>           # Show full device JSON

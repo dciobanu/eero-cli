@@ -20,6 +20,7 @@ type DeviceFilters struct {
 	Online    bool
 	Offline   bool
 	Paused    bool
+	Private   bool
 	Guest     bool
 	NoGuest   bool
 	Interval  int
@@ -46,6 +47,8 @@ func (a *App) Devices(args []string) error {
 			filters.Offline = true
 		} else if args[i] == "--paused" {
 			filters.Paused = true
+		} else if args[i] == "--private" {
+			filters.Private = true
 		} else if args[i] == "--guest" {
 			filters.Guest = true
 		} else if args[i] == "--noguest" {
@@ -142,7 +145,7 @@ func (a *App) ListDevices(filters DeviceFilters) error {
 		}
 	}
 
-	headers := []string{"ID", "NAME", "IP", "MAC", "STATUS", "TYPE", "PROFILE"}
+	headers := []string{"ID", "NAME", "IP", "MAC", "STATUS", "TYPE", "PRIVATE", "PROFILE"}
 	var rows [][]string
 	var filteredCount int
 
@@ -188,6 +191,11 @@ func (a *App) ListDevices(filters DeviceFilters) error {
 			continue
 		}
 
+		// Apply private filter
+		if filters.Private && !d.IsPrivate {
+			continue
+		}
+
 		// Apply guest filter
 		if filters.Guest && !d.IsGuest {
 			continue
@@ -221,6 +229,11 @@ func (a *App) ListDevices(filters DeviceFilters) error {
 			connType = "wireless"
 		}
 
+		private := "no"
+		if d.IsPrivate {
+			private = "yes"
+		}
+
 		deviceID := api.ExtractDeviceID(d.URL)
 
 		rows = append(rows, []string{
@@ -230,6 +243,7 @@ func (a *App) ListDevices(filters DeviceFilters) error {
 			d.MAC,
 			status,
 			connType,
+			private,
 			profileDisplay,
 		})
 	}
@@ -260,6 +274,9 @@ func (a *App) ListDevices(filters DeviceFilters) error {
 	if filters.Paused {
 		filterParts = append(filterParts, "paused")
 	}
+	if filters.Private {
+		filterParts = append(filterParts, "private")
+	}
 	if filters.Guest {
 		filterParts = append(filterParts, "guest")
 	}
@@ -289,6 +306,7 @@ type DeviceState struct {
 	Blocked   bool
 	Wireless  bool
 	IsGuest   bool
+	IsPrivate bool
 	Profile   string
 }
 
@@ -396,6 +414,9 @@ func (a *App) MonitorDevices(filters DeviceFilters) error {
 			if filters.Paused && !d.Paused {
 				continue
 			}
+			if filters.Private && !d.IsPrivate {
+				continue
+			}
 			if filters.Guest && !d.IsGuest {
 				continue
 			}
@@ -416,6 +437,7 @@ func (a *App) MonitorDevices(filters DeviceFilters) error {
 				Blocked:   d.Blocked,
 				Wireless:  d.Wireless,
 				IsGuest:   d.IsGuest,
+				IsPrivate: d.IsPrivate,
 				Profile:   profileDisplay,
 			}
 
@@ -427,6 +449,7 @@ func (a *App) MonitorDevices(filters DeviceFilters) error {
 				hasChanges = prev.Connected != currentState.Connected ||
 					prev.Paused != currentState.Paused ||
 					prev.Blocked != currentState.Blocked ||
+					prev.IsPrivate != currentState.IsPrivate ||
 					prev.IP != currentState.IP
 			} else if !first && !exists {
 				// New device
@@ -446,10 +469,10 @@ func (a *App) MonitorDevices(filters DeviceFilters) error {
 }
 
 func printMonitorHeader() {
-	fmt.Printf("%-8s  %-12s  %-25s  %-25s  %-17s  %-7s  %-8s  %s\n",
-		"TIME", "ID", "NAME", "IP", "MAC", "STATUS", "TYPE", "PROFILE")
-	fmt.Printf("%-8s  %-12s  %-25s  %-25s  %-17s  %-7s  %-8s  %s\n",
-		"--------", "------------", "-------------------------", "-------------------------", "-----------------", "-------", "--------", "------------------------")
+	fmt.Printf("%-8s  %-12s  %-25s  %-32s  %-17s  %-7s  %-8s  %-7s  %s\n",
+		"TIME", "ID", "NAME", "IP", "MAC", "STATUS", "TYPE", "PRIVATE", "PROFILE")
+	fmt.Printf("%-8s  %-12s  %-25s  %-32s  %-17s  %-7s  %-8s  %-7s  %s\n",
+		"--------", "------------", "-------------------------", "--------------------------------", "-----------------", "-------", "--------", "-------", "------------------------")
 }
 
 // pad pads a string to the given width
@@ -480,27 +503,35 @@ func printMonitorRow(deviceID string, prev, curr DeviceState, isNew bool) {
 		connType = "wireless"
 	}
 
+	private := "no"
+	if curr.IsPrivate {
+		private = "yes"
+	}
+
 	// Pad values first, then apply bold to preserve alignment
 	name := pad(curr.Name, 25)
-	ip := pad(curr.IP, 25)
+	ip := pad(curr.IP, 32)
 	mac := pad(curr.MAC, 17)
 	statusPad := pad(status, 7)
 	connTypePad := pad(connType, 8)
+	privatePad := pad(private, 7)
 
 	if isNew {
 		// New device - bold everything
 		name = bold(name)
 		ip = bold(ip)
 		statusPad = bold(statusPad)
+		privatePad = boldIf(privatePad, curr.IsPrivate)
 	} else {
 		// Bold only changed values
 		statusChanged := prev.Connected != curr.Connected || prev.Paused != curr.Paused || prev.Blocked != curr.Blocked
 		statusPad = boldIf(statusPad, statusChanged)
 		ip = boldIf(ip, prev.IP != curr.IP)
+		privatePad = boldIf(privatePad, prev.IsPrivate != curr.IsPrivate)
 	}
 
-	fmt.Printf("%-8s  %-12s  %s  %s  %s  %s  %s  %s\n",
-		timestamp, deviceID, name, ip, mac, statusPad, connTypePad, curr.Profile)
+	fmt.Printf("%-8s  %-12s  %s  %s  %s  %s  %s  %s  %s\n",
+		timestamp, deviceID, name, ip, mac, statusPad, connTypePad, privatePad, curr.Profile)
 }
 
 // findDeviceID finds a device by partial ID, MAC, or name

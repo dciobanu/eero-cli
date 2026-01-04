@@ -203,6 +203,7 @@ type Device struct {
 	Paused        bool          `json:"paused"`
 	Blocked       bool          `json:"blocked"`
 	IsGuest       bool          `json:"is_guest"`
+	IsPrivate     bool          `json:"is_private"`
 	Profile       *struct {
 		URL  string `json:"url"`
 		Name string `json:"name"`
