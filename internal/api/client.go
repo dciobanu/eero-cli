@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -134,17 +135,33 @@ func (c *Client) LoginVerify(userToken, code string) error {
 
 // Account represents the user account
 type Account struct {
-	Email    string    `json:"email_verified"`
-	Phone    string    `json:"phone_verified"`
-	Name     string    `json:"name"`
-	Networks []Network `json:"networks"`
+	Name     string `json:"name"`
+	Email    Email  `json:"email"`
+	Phone    Phone  `json:"phone"`
+	Networks struct {
+		Count int       `json:"count"`
+		Data  []Network `json:"data"`
+	} `json:"networks"`
+	PremiumStatus string `json:"premium_status"`
+}
+
+// Email represents email info
+type Email struct {
+	Value    string `json:"value"`
+	Verified bool   `json:"verified"`
+}
+
+// Phone represents phone info
+type Phone struct {
+	Value    string `json:"value"`
+	Verified bool   `json:"verified"`
 }
 
 // Network represents an Eero network
 type Network struct {
 	URL     string `json:"url"`
 	Name    string `json:"name"`
-	Premium bool   `json:"premium_status"`
+	Created string `json:"created"`
 }
 
 // GetAccount returns the current account information
@@ -344,26 +361,31 @@ func (c *Client) ValidateToken() bool {
 // ExtractNetworkID extracts the network ID from a URL path like "/2.2/networks/12345"
 func ExtractNetworkID(url string) string {
 	// URL format: /2.2/networks/{id}
-	if len(url) > 14 { // len("/2.2/networks/") = 14
-		return url[14:]
+	const prefix = "/2.2/networks/"
+	if len(url) > len(prefix) && url[:len(prefix)] == prefix {
+		return url[len(prefix):]
 	}
 	return url
 }
 
 // ExtractDeviceID extracts the device ID from a URL path
 func ExtractDeviceID(url string) string {
-	// URL format: /2.2/devices/{id}
-	if len(url) > 12 { // len("/2.2/devices/") = 13
-		return url[13:]
+	// URL format: /{network_id}/devices/{device_id}
+	const marker = "/devices/"
+	idx := strings.LastIndex(url, marker)
+	if idx >= 0 {
+		return url[idx+len(marker):]
 	}
 	return url
 }
 
 // ExtractProfileID extracts the profile ID from a URL path
 func ExtractProfileID(url string) string {
-	// URL format: /2.2/profiles/{id}
-	if len(url) > 13 { // len("/2.2/profiles/") = 14
-		return url[14:]
+	// URL format: /{network_id}/profiles/{profile_id}
+	const marker = "/profiles/"
+	idx := strings.LastIndex(url, marker)
+	if idx >= 0 {
+		return url[idx+len(marker):]
 	}
 	return url
 }

@@ -26,8 +26,8 @@ func TestExtractDeviceID(t *testing.T) {
 		url      string
 		expected string
 	}{
-		{"/2.2/devices/dev123", "dev123"},
-		{"/2.2/devices/abc-def", "abc-def"},
+		{"/1664356/devices/f6af4e4424f1", "f6af4e4424f1"},
+		{"/123/devices/abc-def", "abc-def"},
 	}
 
 	for _, tt := range tests {
@@ -43,8 +43,8 @@ func TestExtractProfileID(t *testing.T) {
 		url      string
 		expected string
 	}{
-		{"/2.2/profiles/prof123", "prof123"},
-		{"/2.2/profiles/abc-def", "abc-def"},
+		{"/1664356/profiles/prof123", "prof123"},
+		{"/123/profiles/abc-def", "abc-def"},
 	}
 
 	for _, tt := range tests {

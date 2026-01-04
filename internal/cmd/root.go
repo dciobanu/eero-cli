@@ -61,12 +61,12 @@ func (a *App) EnsureNetwork() (string, error) {
 		return "", fmt.Errorf("getting account: %w", err)
 	}
 
-	if len(account.Networks) == 0 {
+	if len(account.Networks.Data) == 0 {
 		return "", fmt.Errorf("no networks found on this account")
 	}
 
 	// Use first network, extract ID from URL
-	networkID := api.ExtractNetworkID(account.Networks[0].URL)
+	networkID := api.ExtractNetworkID(account.Networks.Data[0].URL)
 	a.Config.NetworkID = networkID
 	if err := a.Config.Save(); err != nil {
 		return "", fmt.Errorf("saving config: %w", err)

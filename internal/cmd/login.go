@@ -48,9 +48,9 @@ func (a *App) Login() error {
 		return nil
 	}
 
-	if len(account.Networks) > 0 {
-		a.Config.NetworkID = api.ExtractNetworkID(account.Networks[0].URL)
-		fmt.Printf("Logged in to network: %s\n", account.Networks[0].Name)
+	if len(account.Networks.Data) > 0 {
+		a.Config.NetworkID = api.ExtractNetworkID(account.Networks.Data[0].URL)
+		fmt.Printf("Logged in to network: %s\n", account.Networks.Data[0].Name)
 	}
 
 	if err := a.Config.Save(); err != nil {
@@ -96,23 +96,19 @@ func (a *App) Status() error {
 	}
 
 	fmt.Println("Status: Authenticated")
-	if account.Email != "" {
-		fmt.Printf("Email: %s\n", account.Email)
+	if account.Email.Value != "" {
+		fmt.Printf("Email: %s\n", account.Email.Value)
 	}
-	if account.Phone != "" {
-		fmt.Printf("Phone: %s\n", account.Phone)
+	if account.Phone.Value != "" {
+		fmt.Printf("Phone: %s\n", account.Phone.Value)
 	}
 	if account.Name != "" {
 		fmt.Printf("Name: %s\n", account.Name)
 	}
-	if len(account.Networks) > 0 {
+	if len(account.Networks.Data) > 0 {
 		fmt.Println("Networks:")
-		for _, n := range account.Networks {
-			premium := ""
-			if n.Premium {
-				premium = " (Premium)"
-			}
-			fmt.Printf("  - %s%s\n", n.Name, premium)
+		for _, n := range account.Networks.Data {
+			fmt.Printf("  - %s\n", n.Name)
 		}
 	}
 	fmt.Printf("Config: %s\n", path)
