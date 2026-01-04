@@ -108,7 +108,8 @@ func (a *App) Status() error {
 	if len(account.Networks.Data) > 0 {
 		fmt.Println("Networks:")
 		for _, n := range account.Networks.Data {
-			fmt.Printf("  - %s\n", n.Name)
+			networkID := api.ExtractNetworkID(n.URL)
+			fmt.Printf("  - %s (ID: %s)\n", n.Name, networkID)
 		}
 	}
 	fmt.Printf("Config: %s\n", path)
