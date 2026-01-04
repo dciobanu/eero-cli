@@ -56,7 +56,7 @@ func (a *App) ListDevices() error {
 		return fmt.Errorf("getting devices: %w", err)
 	}
 
-	headers := []string{"ID", "NAME", "IP", "MAC", "STATUS", "TYPE"}
+	headers := []string{"ID", "NAME", "IP", "MAC", "STATUS", "TYPE", "PROFILE"}
 	var rows [][]string
 
 	for _, d := range devices {
@@ -76,6 +76,11 @@ func (a *App) ListDevices() error {
 			connType = "wireless"
 		}
 
+		profile := ""
+		if d.Profile != nil {
+			profile = d.Profile.Name
+		}
+
 		deviceID := api.ExtractDeviceID(d.URL)
 
 		rows = append(rows, []string{
@@ -85,6 +90,7 @@ func (a *App) ListDevices() error {
 			d.MAC,
 			status,
 			connType,
+			profile,
 		})
 	}
 
