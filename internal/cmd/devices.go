@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/dorin/eero-cli/internal/api"
 )
@@ -17,6 +19,7 @@ type DeviceFilters struct {
 	Offline   bool
 	Guest     bool
 	NoGuest   bool
+	Interval  int
 }
 
 // Devices handles the devices command
@@ -44,6 +47,15 @@ func (a *App) Devices(args []string) error {
 			filters.NoGuest = true
 		} else if args[i] == "--noprofile" {
 			filters.NoProfile = true
+		} else if args[i] == "--interval" && i+1 < len(args) {
+			if v, err := strconv.Atoi(args[i+1]); err == nil {
+				filters.Interval = v
+			}
+			i++ // skip the value
+		} else if strings.HasPrefix(args[i], "--interval=") {
+			if v, err := strconv.Atoi(strings.TrimPrefix(args[i], "--interval=")); err == nil {
+				filters.Interval = v
+			}
 		} else {
 			filteredArgs = append(filteredArgs, args[i])
 		}
@@ -54,6 +66,8 @@ func (a *App) Devices(args []string) error {
 	}
 
 	switch filteredArgs[0] {
+	case "monitor":
+		return a.MonitorDevices(filters)
 	case "pause":
 		if len(filteredArgs) < 2 {
 			return fmt.Errorf("usage: devices pause <device-id>")
@@ -245,6 +259,227 @@ func (a *App) ListDevices(filters DeviceFilters) error {
 	}
 
 	return nil
+}
+
+// DeviceState tracks the state of a device for monitoring
+type DeviceState struct {
+	Name      string
+	IP        string
+	MAC       string
+	Connected bool
+	Paused    bool
+	Blocked   bool
+	Wireless  bool
+	IsGuest   bool
+	Profile   string
+}
+
+const (
+	boldStart = "\033[1m"
+	boldEnd   = "\033[0m"
+)
+
+// bold wraps text in bold escape codes
+func bold(s string) string {
+	return boldStart + s + boldEnd
+}
+
+// boldIf wraps text in bold if condition is true
+func boldIf(s string, condition bool) string {
+	if condition {
+		return bold(s)
+	}
+	return s
+}
+
+// MonitorDevices monitors devices for state changes
+func (a *App) MonitorDevices(filters DeviceFilters) error {
+	networkID, err := a.EnsureNetwork()
+	if err != nil {
+		return err
+	}
+
+	interval := filters.Interval
+	if interval <= 0 {
+		interval = 10
+	}
+
+	// Resolve profile filter once
+	var resolvedProfileName string
+	if filters.Profile != "" {
+		profiles, err := a.Client.GetProfiles(networkID)
+		if err == nil {
+			for _, p := range profiles {
+				profileID := api.ExtractProfileID(p.URL)
+				if strings.EqualFold(profileID, filters.Profile) || strings.EqualFold(p.Name, filters.Profile) {
+					resolvedProfileName = p.Name
+					break
+				}
+			}
+		}
+		if resolvedProfileName == "" {
+			resolvedProfileName = filters.Profile
+		}
+	}
+
+	fmt.Printf("Monitoring devices every %d seconds. Press Ctrl+C to stop.\n\n", interval)
+
+	// Print table header
+	printMonitorHeader()
+
+	// Track previous state
+	prevState := make(map[string]DeviceState)
+	first := true
+
+	for {
+		devices, err := a.Client.GetDevices(networkID)
+		if err != nil {
+			fmt.Printf("[%s] Error fetching devices: %v\n", time.Now().Format("15:04:05"), err)
+			time.Sleep(time.Duration(interval) * time.Second)
+			continue
+		}
+
+		for _, d := range devices {
+			// Apply filters
+			profileName := ""
+			profileDisplay := ""
+			if d.IsGuest {
+				profileDisplay = "Guest"
+			} else if d.Profile != nil {
+				profileName = d.Profile.Name
+				profileID := api.ExtractProfileID(d.Profile.URL)
+				profileDisplay = fmt.Sprintf("%s (%s)", profileName, profileID)
+			}
+
+			if filters.Profile != "" {
+				profileID := ""
+				if d.Profile != nil {
+					profileID = api.ExtractProfileID(d.Profile.URL)
+				}
+				match := strings.EqualFold(profileName, resolvedProfileName) ||
+					strings.EqualFold(profileID, filters.Profile)
+				if !match {
+					continue
+				}
+			}
+
+			if filters.Wired && d.Wireless {
+				continue
+			}
+			if filters.Wireless && !d.Wireless {
+				continue
+			}
+			if filters.Online && !d.Connected {
+				continue
+			}
+			if filters.Offline && d.Connected {
+				continue
+			}
+			if filters.Guest && !d.IsGuest {
+				continue
+			}
+			if filters.NoGuest && d.IsGuest {
+				continue
+			}
+			if filters.NoProfile && d.Profile != nil {
+				continue
+			}
+
+			deviceID := api.ExtractDeviceID(d.URL)
+			currentState := DeviceState{
+				Name:      d.DisplayName(),
+				IP:        d.IP,
+				MAC:       d.MAC,
+				Connected: d.Connected,
+				Paused:    d.Paused,
+				Blocked:   d.Blocked,
+				Wireless:  d.Wireless,
+				IsGuest:   d.IsGuest,
+				Profile:   profileDisplay,
+			}
+
+			prev, exists := prevState[deviceID]
+			hasChanges := false
+
+			if !first && exists {
+				// Check for any changes
+				hasChanges = prev.Connected != currentState.Connected ||
+					prev.Paused != currentState.Paused ||
+					prev.Blocked != currentState.Blocked ||
+					prev.IP != currentState.IP
+			} else if !first && !exists {
+				// New device
+				hasChanges = true
+			}
+
+			if hasChanges {
+				printMonitorRow(deviceID, prev, currentState, !exists)
+			}
+
+			prevState[deviceID] = currentState
+		}
+
+		first = false
+		time.Sleep(time.Duration(interval) * time.Second)
+	}
+}
+
+func printMonitorHeader() {
+	fmt.Printf("%-8s  %-12s  %-25s  %-15s  %-17s  %-7s  %-8s  %s\n",
+		"TIME", "ID", "NAME", "IP", "MAC", "STATUS", "TYPE", "PROFILE")
+	fmt.Printf("%-8s  %-12s  %-25s  %-15s  %-17s  %-7s  %-8s  %s\n",
+		"--------", "------------", "-------------------------", "---------------", "-----------------", "-------", "--------", "------------------------")
+}
+
+// pad pads a string to the given width
+func pad(s string, width int) string {
+	if len(s) >= width {
+		return s
+	}
+	return s + strings.Repeat(" ", width-len(s))
+}
+
+func printMonitorRow(deviceID string, prev, curr DeviceState, isNew bool) {
+	timestamp := time.Now().Format("15:04:05")
+
+	// Determine status
+	status := "offline"
+	if curr.Connected {
+		status = "online"
+	}
+	if curr.Paused {
+		status = "paused"
+	}
+	if curr.Blocked {
+		status = "blocked"
+	}
+
+	connType := "wired"
+	if curr.Wireless {
+		connType = "wireless"
+	}
+
+	// Pad values first, then apply bold to preserve alignment
+	name := pad(curr.Name, 25)
+	ip := pad(curr.IP, 15)
+	mac := pad(curr.MAC, 17)
+	statusPad := pad(status, 7)
+	connTypePad := pad(connType, 8)
+
+	if isNew {
+		// New device - bold everything
+		name = bold(name)
+		ip = bold(ip)
+		statusPad = bold(statusPad)
+	} else {
+		// Bold only changed values
+		statusChanged := prev.Connected != curr.Connected || prev.Paused != curr.Paused || prev.Blocked != curr.Blocked
+		statusPad = boldIf(statusPad, statusChanged)
+		ip = boldIf(ip, prev.IP != curr.IP)
+	}
+
+	fmt.Printf("%-8s  %-12s  %s  %s  %s  %s  %s  %s\n",
+		timestamp, deviceID, name, ip, mac, statusPad, connTypePad, curr.Profile)
 }
 
 // findDeviceID finds a device by partial ID, MAC, or name

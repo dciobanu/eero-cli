@@ -161,6 +161,7 @@ Commands:
     --offline                 Show only offline devices
     --guest                   Show only guest network devices
     --noguest                 Exclude guest network devices
+  devices monitor [--interval <sec>]  Monitor devices for state changes
   devices pause <id>          Pause a device's internet access
   devices unpause <id>        Unpause a device
   devices block <id>          Block a device from the network
