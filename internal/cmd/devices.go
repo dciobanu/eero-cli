@@ -9,43 +9,57 @@ import (
 
 // Devices handles the devices command
 func (a *App) Devices(args []string) error {
-	if len(args) == 0 {
-		return a.ListDevices()
+	// Parse --profile flag
+	var profileFilter string
+	var filteredArgs []string
+	for i := 0; i < len(args); i++ {
+		if args[i] == "--profile" && i+1 < len(args) {
+			profileFilter = args[i+1]
+			i++ // skip the value
+		} else if strings.HasPrefix(args[i], "--profile=") {
+			profileFilter = strings.TrimPrefix(args[i], "--profile=")
+		} else {
+			filteredArgs = append(filteredArgs, args[i])
+		}
 	}
 
-	switch args[0] {
+	if len(filteredArgs) == 0 {
+		return a.ListDevices(profileFilter)
+	}
+
+	switch filteredArgs[0] {
 	case "pause":
-		if len(args) < 2 {
+		if len(filteredArgs) < 2 {
 			return fmt.Errorf("usage: devices pause <device-id>")
 		}
-		return a.PauseDevice(args[1], true)
+		return a.PauseDevice(filteredArgs[1], true)
 	case "unpause":
-		if len(args) < 2 {
+		if len(filteredArgs) < 2 {
 			return fmt.Errorf("usage: devices unpause <device-id>")
 		}
-		return a.PauseDevice(args[1], false)
+		return a.PauseDevice(filteredArgs[1], false)
 	case "block":
-		if len(args) < 2 {
+		if len(filteredArgs) < 2 {
 			return fmt.Errorf("usage: devices block <device-id>")
 		}
-		return a.BlockDevice(args[1], true)
+		return a.BlockDevice(filteredArgs[1], true)
 	case "unblock":
-		if len(args) < 2 {
+		if len(filteredArgs) < 2 {
 			return fmt.Errorf("usage: devices unblock <device-id>")
 		}
-		return a.BlockDevice(args[1], false)
+		return a.BlockDevice(filteredArgs[1], false)
 	case "rename":
-		if len(args) < 3 {
+		if len(filteredArgs) < 3 {
 			return fmt.Errorf("usage: devices rename <device-id> <name>")
 		}
-		return a.RenameDevice(args[1], strings.Join(args[2:], " "))
+		return a.RenameDevice(filteredArgs[1], strings.Join(filteredArgs[2:], " "))
 	default:
-		return fmt.Errorf("unknown devices subcommand: %s", args[0])
+		return fmt.Errorf("unknown devices subcommand: %s", filteredArgs[0])
 	}
 }
 
-// ListDevices lists all devices on the network
-func (a *App) ListDevices() error {
+// ListDevices lists all devices on the network, optionally filtered by profile
+func (a *App) ListDevices(profileFilter string) error {
 	networkID, err := a.EnsureNetwork()
 	if err != nil {
 		return err
@@ -56,10 +70,52 @@ func (a *App) ListDevices() error {
 		return fmt.Errorf("getting devices: %w", err)
 	}
 
+	// Build profile ID to name map for resolving filter
+	var resolvedProfileName string
+	var resolvedProfileID string
+	if profileFilter != "" {
+		profiles, err := a.Client.GetProfiles(networkID)
+		if err == nil {
+			for _, p := range profiles {
+				profileID := api.ExtractProfileID(p.URL)
+				// Check if filter matches ID or name
+				if strings.EqualFold(profileID, profileFilter) || strings.EqualFold(p.Name, profileFilter) {
+					resolvedProfileName = p.Name
+					resolvedProfileID = profileID
+					break
+				}
+			}
+		}
+		if resolvedProfileName == "" {
+			// No exact match found, use filter as-is for name matching
+			resolvedProfileName = profileFilter
+		}
+	}
+
 	headers := []string{"ID", "NAME", "IP", "MAC", "STATUS", "TYPE", "PROFILE"}
 	var rows [][]string
+	var filteredCount int
 
 	for _, d := range devices {
+		profileDisplay := ""
+		profileName := ""
+		profileID := ""
+		if d.Profile != nil {
+			profileName = d.Profile.Name
+			profileID = api.ExtractProfileID(d.Profile.URL)
+			profileDisplay = fmt.Sprintf("%s (%s)", profileName, profileID)
+		}
+
+		// Apply profile filter if specified (match by name or ID)
+		if profileFilter != "" {
+			match := strings.EqualFold(profileName, resolvedProfileName) ||
+				strings.EqualFold(profileID, profileFilter)
+			if !match {
+				continue
+			}
+		}
+		filteredCount++
+
 		status := "offline"
 		if d.Connected {
 			status = "online"
@@ -76,11 +132,6 @@ func (a *App) ListDevices() error {
 			connType = "wireless"
 		}
 
-		profile := ""
-		if d.Profile != nil {
-			profile = d.Profile.Name
-		}
-
 		deviceID := api.ExtractDeviceID(d.URL)
 
 		rows = append(rows, []string{
@@ -90,12 +141,20 @@ func (a *App) ListDevices() error {
 			d.MAC,
 			status,
 			connType,
-			profile,
+			profileDisplay,
 		})
 	}
 
 	PrintTable(headers, rows)
-	fmt.Printf("\nTotal: %d devices\n", len(devices))
+	if profileFilter != "" {
+		if resolvedProfileID != "" {
+			fmt.Printf("\nTotal: %d devices (filtered by profile: %s [%s])\n", filteredCount, resolvedProfileName, resolvedProfileID)
+		} else {
+			fmt.Printf("\nTotal: %d devices (filtered by profile: %s)\n", filteredCount, profileFilter)
+		}
+	} else {
+		fmt.Printf("\nTotal: %d devices\n", len(devices))
+	}
 
 	return nil
 }

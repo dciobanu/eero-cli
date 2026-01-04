@@ -152,11 +152,11 @@ Commands:
   logout                    Clear saved authentication
   status                    Show current authentication status
 
-  devices                   List all devices
-  devices pause <id>        Pause a device's internet access
-  devices unpause <id>      Unpause a device
-  devices block <id>        Block a device from the network
-  devices unblock <id>      Unblock a device
+  devices [--profile <name>]  List all devices (optionally filter by profile)
+  devices pause <id>          Pause a device's internet access
+  devices unpause <id>        Unpause a device
+  devices block <id>          Block a device from the network
+  devices unblock <id>        Unblock a device
   devices rename <id> <name>  Set a device's nickname
 
   profiles                  List all profiles
