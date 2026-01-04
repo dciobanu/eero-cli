@@ -163,6 +163,7 @@ Commands:
     --guest                   Show only guest network devices
     --noguest                 Exclude guest network devices
   devices monitor [--interval <sec>]  Monitor devices for state changes
+  devices inspect <id>        Show full device state as JSON
   devices pause <id>          Pause a device's internet access
   devices unpause <id>        Unpause a device
   devices block <id>          Block a device from the network

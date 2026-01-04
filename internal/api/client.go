@@ -304,6 +304,22 @@ func shortenIPv6(ip string) string {
 	return strings.Join(parts, ":")
 }
 
+// GetDeviceRaw returns the raw JSON for a single device
+func (c *Client) GetDeviceRaw(networkID, deviceID string) (json.RawMessage, error) {
+	path := fmt.Sprintf("/2.2/networks/%s/devices/%s", networkID, deviceID)
+	data, err := c.request("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp APIResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	return resp.Data, nil
+}
+
 // GetDevices returns all devices on the network
 func (c *Client) GetDevices(networkID string) ([]Device, error) {
 	path := fmt.Sprintf("/2.2/networks/%s/devices", networkID)

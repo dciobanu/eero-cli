@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -71,6 +73,11 @@ func (a *App) Devices(args []string) error {
 	switch filteredArgs[0] {
 	case "monitor":
 		return a.MonitorDevices(filters)
+	case "inspect":
+		if len(filteredArgs) < 2 {
+			return fmt.Errorf("usage: devices inspect <device-id>")
+		}
+		return a.InspectDevice(filteredArgs[1])
 	case "pause":
 		if len(filteredArgs) < 2 {
 			return fmt.Errorf("usage: devices pause <device-id>")
@@ -599,6 +606,34 @@ func (a *App) RenameDevice(deviceQuery, name string) error {
 	}
 
 	fmt.Printf("Device %s has been renamed to '%s'\n", deviceID, name)
+
+	return nil
+}
+
+// InspectDevice prints the full device state as JSON
+func (a *App) InspectDevice(deviceQuery string) error {
+	networkID, err := a.EnsureNetwork()
+	if err != nil {
+		return err
+	}
+
+	deviceID, err := a.findDeviceID(networkID, deviceQuery)
+	if err != nil {
+		return err
+	}
+
+	rawJSON, err := a.Client.GetDeviceRaw(networkID, deviceID)
+	if err != nil {
+		return fmt.Errorf("getting device: %w", err)
+	}
+
+	// Pretty print the JSON
+	var prettyJSON bytes.Buffer
+	if err := json.Indent(&prettyJSON, rawJSON, "", "  "); err != nil {
+		return fmt.Errorf("formatting JSON: %w", err)
+	}
+
+	fmt.Println(prettyJSON.String())
 
 	return nil
 }
