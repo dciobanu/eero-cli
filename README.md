@@ -4,6 +4,15 @@ A command-line utility for controlling Eero mesh WiFi networks.
 
 ## Installation
 
+### Using Homebrew
+
+```bash
+brew tap dciobanu/tap
+brew install eero-cli
+```
+
+### Building from source-code
+
 ```bash
 # Build
 make build
