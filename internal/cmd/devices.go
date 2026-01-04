@@ -17,6 +17,7 @@ type DeviceFilters struct {
 	Wireless  bool
 	Online    bool
 	Offline   bool
+	Paused    bool
 	Guest     bool
 	NoGuest   bool
 	Interval  int
@@ -41,6 +42,8 @@ func (a *App) Devices(args []string) error {
 			filters.Online = true
 		} else if args[i] == "--offline" {
 			filters.Offline = true
+		} else if args[i] == "--paused" {
+			filters.Paused = true
 		} else if args[i] == "--guest" {
 			filters.Guest = true
 		} else if args[i] == "--noguest" {
@@ -173,6 +176,11 @@ func (a *App) ListDevices(filters DeviceFilters) error {
 			continue
 		}
 
+		// Apply paused filter
+		if filters.Paused && !d.Paused {
+			continue
+		}
+
 		// Apply guest filter
 		if filters.Guest && !d.IsGuest {
 			continue
@@ -211,7 +219,7 @@ func (a *App) ListDevices(filters DeviceFilters) error {
 		rows = append(rows, []string{
 			deviceID,
 			d.DisplayName(),
-			d.IP,
+			d.DisplayIP(),
 			d.MAC,
 			status,
 			connType,
@@ -241,6 +249,9 @@ func (a *App) ListDevices(filters DeviceFilters) error {
 	}
 	if filters.Offline {
 		filterParts = append(filterParts, "offline")
+	}
+	if filters.Paused {
+		filterParts = append(filterParts, "paused")
 	}
 	if filters.Guest {
 		filterParts = append(filterParts, "guest")
@@ -375,6 +386,9 @@ func (a *App) MonitorDevices(filters DeviceFilters) error {
 			if filters.Offline && d.Connected {
 				continue
 			}
+			if filters.Paused && !d.Paused {
+				continue
+			}
 			if filters.Guest && !d.IsGuest {
 				continue
 			}
@@ -388,7 +402,7 @@ func (a *App) MonitorDevices(filters DeviceFilters) error {
 			deviceID := api.ExtractDeviceID(d.URL)
 			currentState := DeviceState{
 				Name:      d.DisplayName(),
-				IP:        d.IP,
+				IP:        d.DisplayIP(),
 				MAC:       d.MAC,
 				Connected: d.Connected,
 				Paused:    d.Paused,
@@ -425,10 +439,10 @@ func (a *App) MonitorDevices(filters DeviceFilters) error {
 }
 
 func printMonitorHeader() {
-	fmt.Printf("%-8s  %-12s  %-25s  %-15s  %-17s  %-7s  %-8s  %s\n",
+	fmt.Printf("%-8s  %-12s  %-25s  %-25s  %-17s  %-7s  %-8s  %s\n",
 		"TIME", "ID", "NAME", "IP", "MAC", "STATUS", "TYPE", "PROFILE")
-	fmt.Printf("%-8s  %-12s  %-25s  %-15s  %-17s  %-7s  %-8s  %s\n",
-		"--------", "------------", "-------------------------", "---------------", "-----------------", "-------", "--------", "------------------------")
+	fmt.Printf("%-8s  %-12s  %-25s  %-25s  %-17s  %-7s  %-8s  %s\n",
+		"--------", "------------", "-------------------------", "-------------------------", "-----------------", "-------", "--------", "------------------------")
 }
 
 // pad pads a string to the given width
@@ -461,7 +475,7 @@ func printMonitorRow(deviceID string, prev, curr DeviceState, isNew bool) {
 
 	// Pad values first, then apply bold to preserve alignment
 	name := pad(curr.Name, 25)
-	ip := pad(curr.IP, 15)
+	ip := pad(curr.IP, 25)
 	mac := pad(curr.MAC, 17)
 	statusPad := pad(status, 7)
 	connTypePad := pad(connType, 8)

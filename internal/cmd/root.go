@@ -159,6 +159,7 @@ Commands:
     --wireless                Show only wireless devices
     --online                  Show only online devices
     --offline                 Show only offline devices
+    --paused                  Show only paused devices
     --guest                   Show only guest network devices
     --noguest                 Exclude guest network devices
   devices monitor [--interval <sec>]  Monitor devices for state changes

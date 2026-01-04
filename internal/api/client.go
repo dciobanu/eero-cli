@@ -184,19 +184,26 @@ func (c *Client) GetAccount() (*Account, error) {
 	return &account, nil
 }
 
+// IPv6Address represents an IPv6 address entry
+type IPv6Address struct {
+	Address string `json:"address"`
+	Scope   string `json:"scope"`
+}
+
 // Device represents a connected device
 type Device struct {
-	URL       string `json:"url"`
-	MAC       string `json:"mac"`
-	Hostname  string `json:"hostname"`
-	Nickname  string `json:"nickname"`
-	IP        string `json:"ip"`
-	Connected bool   `json:"connected"`
-	Wireless  bool   `json:"wireless"`
-	Paused    bool   `json:"paused"`
-	Blocked   bool   `json:"blocked"`
-	IsGuest   bool   `json:"is_guest"`
-	Profile   *struct {
+	URL           string        `json:"url"`
+	MAC           string        `json:"mac"`
+	Hostname      string        `json:"hostname"`
+	Nickname      string        `json:"nickname"`
+	IP            string        `json:"ip"`
+	IPv6Addresses []IPv6Address `json:"ipv6_addresses"`
+	Connected     bool          `json:"connected"`
+	Wireless      bool          `json:"wireless"`
+	Paused        bool          `json:"paused"`
+	Blocked       bool          `json:"blocked"`
+	IsGuest       bool          `json:"is_guest"`
+	Profile       *struct {
 		URL  string `json:"url"`
 		Name string `json:"name"`
 	} `json:"profile"`
@@ -213,6 +220,88 @@ func (d *Device) DisplayName() string {
 		return d.Hostname
 	}
 	return d.MAC
+}
+
+// DisplayIP returns the best available IP address (IPv4 preferred, then IPv6 shortened)
+func (d *Device) DisplayIP() string {
+	if d.IP != "" {
+		return d.IP
+	}
+	// Try to find a non-link-local IPv6 address first, then fall back to link-local
+	var linkLocal string
+	for _, addr := range d.IPv6Addresses {
+		// Remove the /prefix if present
+		ip := addr.Address
+		if idx := strings.Index(ip, "/"); idx != -1 {
+			ip = ip[:idx]
+		}
+		if addr.Scope == "link" {
+			linkLocal = shortenIPv6(ip)
+		} else {
+			return shortenIPv6(ip)
+		}
+	}
+	if linkLocal != "" {
+		return linkLocal
+	}
+	return ""
+}
+
+// shortenIPv6 shortens an IPv6 address using conventional notation
+func shortenIPv6(ip string) string {
+	// Parse and re-format to get canonical short form
+	// Handle the case where it might already be shortened or full
+	parts := strings.Split(ip, ":")
+	if len(parts) != 8 {
+		// Already shortened or invalid, return as-is
+		return ip
+	}
+
+	// Remove leading zeros from each group
+	for i, part := range parts {
+		parts[i] = strings.TrimLeft(part, "0")
+		if parts[i] == "" {
+			parts[i] = "0"
+		}
+	}
+
+	// Find the longest run of consecutive "0" groups
+	bestStart, bestLen := -1, 0
+	curStart, curLen := -1, 0
+	for i, part := range parts {
+		if part == "0" {
+			if curStart == -1 {
+				curStart = i
+				curLen = 1
+			} else {
+				curLen++
+			}
+		} else {
+			if curLen > bestLen {
+				bestStart, bestLen = curStart, curLen
+			}
+			curStart, curLen = -1, 0
+		}
+	}
+	if curLen > bestLen {
+		bestStart, bestLen = curStart, curLen
+	}
+
+	// Replace the longest run with ::
+	if bestLen >= 2 {
+		before := strings.Join(parts[:bestStart], ":")
+		after := strings.Join(parts[bestStart+bestLen:], ":")
+		if before == "" && after == "" {
+			return "::"
+		} else if before == "" {
+			return "::" + after
+		} else if after == "" {
+			return before + "::"
+		}
+		return before + "::" + after
+	}
+
+	return strings.Join(parts, ":")
 }
 
 // GetDevices returns all devices on the network
