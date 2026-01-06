@@ -57,6 +57,9 @@ func run() error {
 	case "profiles":
 		return app.Profiles(subArgs)
 
+	case "eeros":
+		return app.Eeros(subArgs)
+
 	case "guest":
 		return app.Guest(subArgs)
 

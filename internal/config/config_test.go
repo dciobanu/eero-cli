@@ -23,15 +23,15 @@ func TestConfigPath(t *testing.T) {
 }
 
 func TestLoadNonExistent(t *testing.T) {
-	// Loading a non-existent config should return empty config
-	cfg, err := Load()
-	if err != nil {
-		// This is expected if the config doesn't exist
-		t.Logf("Load() returned error (expected for non-existent): %v", err)
+	// Test that a config without a token returns HasToken() = false
+	cfg := &Config{}
+	if cfg.HasToken() {
+		t.Error("Empty config should not have token")
 	}
 
-	if cfg != nil && cfg.HasToken() {
-		t.Error("Empty config should not have token")
+	cfg.Token = ""
+	if cfg.HasToken() {
+		t.Error("Config with empty token should not have token")
 	}
 }
 

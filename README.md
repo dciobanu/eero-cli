@@ -60,6 +60,14 @@ eero-cli profiles add <profile> <device>    # Add device to profile
 eero-cli profiles remove <profile> <device> # Remove device from profile
 ```
 
+### Eero Nodes
+
+```bash
+eero-cli eeros                 # List all eero mesh nodes
+eero-cli eeros inspect <id>    # Show full eero JSON
+eero-cli eeros reboot <id>     # Reboot a single eero node
+```
+
 ### Guest Network
 
 ```bash
@@ -94,11 +102,9 @@ make clean      # Remove build artifacts
 
 API endpoints to explore for future features:
 
-### Eero Nodes (High Value)
+### LED Control
 ```
-GET  /2.2/networks/{id}/eeros      - List mesh nodes (status, clients, mesh quality)
-POST /2.2/eeros/{id}/reboot        - Reboot individual node
-POST /2.2/eeros/{id}/led           - LED control
+POST /2.2/eeros/{id}/led           - LED on/off control
 ```
 
 ### Port Forwarding (High Value)

@@ -178,6 +178,10 @@ Commands:
   profiles add <profile> <device>     Add device to profile
   profiles remove <profile> <device>  Remove device from profile
 
+  eeros                       List all eero mesh nodes
+  eeros inspect <id>          Show full eero state as JSON
+  eeros reboot <id>           Reboot a single eero node
+
   guest                     Show guest network status
   guest enable              Enable guest network
   guest disable             Disable guest network

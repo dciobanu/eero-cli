@@ -512,6 +512,81 @@ func (c *Client) Reboot(networkID string) error {
 	return err
 }
 
+// Eero represents an eero mesh node
+type Eero struct {
+	URL       string `json:"url"`
+	Serial    string `json:"serial"`
+	Location  string `json:"location"`
+	Gateway   bool   `json:"gateway"`
+	IPAddress string `json:"ip_address"`
+	Status    string `json:"status"`
+	Model     string `json:"model"`
+	OSVersion string `json:"os_version"`
+	Wired     bool   `json:"wired"`
+	State     string `json:"state"`
+	Resources struct {
+		Reboot string `json:"reboot"`
+	} `json:"resources"`
+	MeshQualityBars         int  `json:"mesh_quality_bars"`
+	ConnectedClientsCount   int  `json:"connected_clients_count"`
+	HeartbeatOK             bool `json:"heartbeat_ok"`
+	IsPrimaryNode           bool `json:"is_primary_node"`
+	ConnectionType          string `json:"connection_type"`
+}
+
+// GetEeros returns all eero nodes on the network
+func (c *Client) GetEeros(networkID string) ([]Eero, error) {
+	path := fmt.Sprintf("/2.2/networks/%s/eeros", networkID)
+	data, err := c.request("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp APIResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	var eeros []Eero
+	if err := json.Unmarshal(resp.Data, &eeros); err != nil {
+		return nil, fmt.Errorf("parsing eeros data: %w", err)
+	}
+
+	return eeros, nil
+}
+
+// GetEeroRaw returns the raw JSON for a single eero
+func (c *Client) GetEeroRaw(eeroID string) (json.RawMessage, error) {
+	path := fmt.Sprintf("/2.2/eeros/%s", eeroID)
+	data, err := c.request("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp APIResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	return resp.Data, nil
+}
+
+// RebootEero reboots a single eero node
+func (c *Client) RebootEero(eeroID string) error {
+	path := fmt.Sprintf("/2.2/eeros/%s/reboot", eeroID)
+	_, err := c.request("POST", path, nil)
+	return err
+}
+
+// ExtractEeroID extracts the eero ID from a URL path like "/2.2/eeros/12345"
+func ExtractEeroID(url string) string {
+	const prefix = "/2.2/eeros/"
+	if len(url) > len(prefix) && url[:len(prefix)] == prefix {
+		return url[len(prefix):]
+	}
+	return url
+}
+
 // ValidateToken checks if the current token is valid
 func (c *Client) ValidateToken() bool {
 	if c.token == "" {
