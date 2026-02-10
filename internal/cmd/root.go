@@ -187,6 +187,11 @@ Commands:
   guest disable             Disable guest network
   guest password <pass>     Set guest network password
 
+  reservations                          List all DHCP reservations
+  reservations add <mac> <ip> [desc]    Create a DHCP reservation
+  reservations remove <id|mac|ip>       Delete a DHCP reservation
+  reservations inspect <id|mac|ip>      Show full reservation JSON
+
   reboot                    Reboot the network
 
   help                      Show this help message`)

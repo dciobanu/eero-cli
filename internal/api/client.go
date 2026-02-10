@@ -596,6 +596,80 @@ func (c *Client) ValidateToken() bool {
 	return err == nil
 }
 
+// Reservation represents a DHCP reservation
+type Reservation struct {
+	URL         string `json:"url"`
+	IP          string `json:"ip"`
+	MAC         string `json:"mac"`
+	Description string `json:"description"`
+}
+
+// GetReservations returns all DHCP reservations on the network
+func (c *Client) GetReservations(networkID string) ([]Reservation, error) {
+	path := fmt.Sprintf("/2.2/networks/%s/reservations", networkID)
+	data, err := c.request("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp APIResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	var reservations []Reservation
+	if err := json.Unmarshal(resp.Data, &reservations); err != nil {
+		return nil, fmt.Errorf("parsing reservations data: %w", err)
+	}
+
+	return reservations, nil
+}
+
+// GetReservationRaw returns the raw JSON for a single reservation
+func (c *Client) GetReservationRaw(networkID, reservationID string) (json.RawMessage, error) {
+	path := fmt.Sprintf("/2.2/networks/%s/reservations/%s", networkID, reservationID)
+	data, err := c.request("GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var resp APIResponse
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return nil, fmt.Errorf("parsing response: %w", err)
+	}
+
+	return resp.Data, nil
+}
+
+// CreateReservation creates a new DHCP reservation
+func (c *Client) CreateReservation(networkID, ip, mac, description string) error {
+	path := fmt.Sprintf("/2.2/networks/%s/reservations", networkID)
+	payload := map[string]string{
+		"ip":          ip,
+		"mac":         mac,
+		"description": description,
+	}
+	_, err := c.request("POST", path, payload)
+	return err
+}
+
+// DeleteReservation deletes a DHCP reservation
+func (c *Client) DeleteReservation(networkID, reservationID string) error {
+	path := fmt.Sprintf("/2.2/networks/%s/reservations/%s", networkID, reservationID)
+	_, err := c.request("DELETE", path, nil)
+	return err
+}
+
+// ExtractReservationID extracts the reservation ID from a URL path
+func ExtractReservationID(url string) string {
+	const marker = "/reservations/"
+	idx := strings.LastIndex(url, marker)
+	if idx >= 0 {
+		return url[idx+len(marker):]
+	}
+	return url
+}
+
 // ExtractNetworkID extracts the network ID from a URL path like "/2.2/networks/12345"
 func ExtractNetworkID(url string) string {
 	// URL format: /2.2/networks/{id}

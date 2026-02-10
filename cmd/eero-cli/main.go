@@ -63,6 +63,9 @@ func run() error {
 	case "guest":
 		return app.Guest(subArgs)
 
+	case "reservations":
+		return app.Reservations(subArgs)
+
 	case "reboot":
 		return app.Reboot()
 
