@@ -19,13 +19,15 @@ const (
 // Client is the Eero API client
 type Client struct {
 	token      string
+	baseURL    string
 	httpClient *http.Client
 }
 
 // New creates a new Eero API client
 func New(token string) *Client {
 	return &Client{
-		token: token,
+		token:   token,
+		baseURL: baseURL,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -35,6 +37,11 @@ func New(token string) *Client {
 // SetToken updates the client's authentication token
 func (c *Client) SetToken(token string) {
 	c.token = token
+}
+
+// SetBaseURL overrides the API base URL (used for testing)
+func (c *Client) SetBaseURL(url string) {
+	c.baseURL = url
 }
 
 // request makes an HTTP request to the Eero API
@@ -48,7 +55,7 @@ func (c *Client) request(method, path string, body interface{}) ([]byte, error) 
 		reqBody = bytes.NewReader(data)
 	}
 
-	req, err := http.NewRequest(method, baseURL+path, reqBody)
+	req, err := http.NewRequest(method, c.baseURL+path, reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}

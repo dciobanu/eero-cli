@@ -1,0 +1,15 @@
+{
+  "meta": {
+    "code": 200,
+    "server_id": "srv-001",
+    "timestamp": 1700000000
+  },
+  "data": {
+    "url": "/2.2/networks/12345/profiles/prof1",
+    "name": "Adults",
+    "paused": false,
+    "devices": [
+      {"url": "/2.2/networks/12345/devices/aabbccdd1122"}
+    ]
+  }
+}

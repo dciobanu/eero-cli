@@ -1,0 +1,63 @@
+{
+  "meta": {
+    "code": 200,
+    "server_id": "srv-001",
+    "timestamp": 1700000000
+  },
+  "data": [
+    {
+      "url": "/2.2/networks/12345/devices/aabbccdd1122",
+      "mac": "AA:BB:CC:DD:11:22",
+      "hostname": "laptop",
+      "nickname": "My Laptop",
+      "ip": "192.168.1.100",
+      "ipv6_addresses": [],
+      "connected": true,
+      "wireless": true,
+      "paused": false,
+      "blocked": false,
+      "is_guest": false,
+      "is_private": false,
+      "profile": {
+        "url": "/2.2/networks/12345/profiles/prof1",
+        "name": "Adults"
+      },
+      "connection_type": "wireless",
+      "device_type": "laptop"
+    },
+    {
+      "url": "/2.2/networks/12345/devices/eeff00112233",
+      "mac": "EE:FF:00:11:22:33",
+      "hostname": "phone",
+      "nickname": "",
+      "ip": "192.168.1.101",
+      "ipv6_addresses": [],
+      "connected": false,
+      "wireless": true,
+      "paused": false,
+      "blocked": false,
+      "is_guest": false,
+      "is_private": true,
+      "profile": null,
+      "connection_type": "wireless",
+      "device_type": "phone"
+    },
+    {
+      "url": "/2.2/networks/12345/devices/112233445566",
+      "mac": "11:22:33:44:55:66",
+      "hostname": "server",
+      "nickname": "NAS",
+      "ip": "192.168.1.10",
+      "ipv6_addresses": [],
+      "connected": true,
+      "wireless": false,
+      "paused": false,
+      "blocked": false,
+      "is_guest": false,
+      "is_private": false,
+      "profile": null,
+      "connection_type": "ethernet",
+      "device_type": "server"
+    }
+  ]
+}

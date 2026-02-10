@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "code": 200,
+    "server_id": "srv-001",
+    "timestamp": 1700000000
+  },
+  "data": [
+    {
+      "url": "/2.2/networks/12345/reservations/res1",
+      "ip": "192.168.1.10",
+      "mac": "11:22:33:44:55:66",
+      "description": "NAS Server"
+    },
+    {
+      "url": "/2.2/networks/12345/reservations/res2",
+      "ip": "192.168.1.20",
+      "mac": "AA:BB:CC:DD:EE:FF",
+      "description": "Printer"
+    }
+  ]
+}

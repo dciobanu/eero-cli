@@ -1,0 +1,12 @@
+{
+  "meta": {
+    "code": 200,
+    "server_id": "srv-001",
+    "timestamp": 1700000000
+  },
+  "data": {
+    "enabled": true,
+    "name": "Home Guest",
+    "password": "guestpass123"
+  }
+}

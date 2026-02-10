@@ -1,0 +1,49 @@
+{
+  "meta": {
+    "code": 200,
+    "server_id": "srv-001",
+    "timestamp": 1700000000
+  },
+  "data": [
+    {
+      "url": "/2.2/eeros/8318690",
+      "serial": "SN12345678",
+      "location": "Living Room",
+      "gateway": true,
+      "ip_address": "192.168.1.1",
+      "status": "green",
+      "model": "eero Pro 6E",
+      "os_version": "7.2.1",
+      "wired": true,
+      "state": "connected",
+      "resources": {
+        "reboot": "/2.2/eeros/8318690/reboot"
+      },
+      "mesh_quality_bars": 5,
+      "connected_clients_count": 12,
+      "heartbeat_ok": true,
+      "is_primary_node": true,
+      "connection_type": "wired"
+    },
+    {
+      "url": "/2.2/eeros/8318691",
+      "serial": "SN87654321",
+      "location": "Bedroom",
+      "gateway": false,
+      "ip_address": "192.168.1.2",
+      "status": "green",
+      "model": "eero 6+",
+      "os_version": "7.2.1",
+      "wired": false,
+      "state": "connected",
+      "resources": {
+        "reboot": "/2.2/eeros/8318691/reboot"
+      },
+      "mesh_quality_bars": 3,
+      "connected_clients_count": 5,
+      "heartbeat_ok": true,
+      "is_primary_node": false,
+      "connection_type": "wireless"
+    }
+  ]
+}

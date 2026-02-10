@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "code": 200,
+    "server_id": "srv-001",
+    "timestamp": 1700000000
+  },
+  "data": {
+    "name": "Test User",
+    "email": {
+      "value": "test@example.com",
+      "verified": true
+    },
+    "phone": {
+      "value": "+15551234567",
+      "verified": true
+    },
+    "networks": {
+      "count": 1,
+      "data": [
+        {
+          "url": "/2.2/networks/12345",
+          "name": "Home Network",
+          "created": "2023-01-01T00:00:00Z"
+        }
+      ]
+    },
+    "premium_status": "active"
+  }
+}

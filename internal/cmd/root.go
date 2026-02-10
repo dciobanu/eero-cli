@@ -14,7 +14,7 @@ import (
 // App holds the application state
 type App struct {
 	Config *config.Config
-	Client *api.Client
+	Client api.EeroAPI
 }
 
 // NewApp creates a new application instance
